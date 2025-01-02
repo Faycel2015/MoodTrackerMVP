@@ -1,1 +1,5 @@
 Mood Tracker/Mood Tracker.xcodeproj/project.xcworkspace/xcuserdata/
+**/xcuserdata/
+*.xcuserstate
+*.xcworkspace/
+*.xcodeproj/
