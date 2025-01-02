@@ -1,5 +1,11 @@
-Mood Tracker/Mood Tracker.xcodeproj/project.xcworkspace/xcuserdata/
+# Xcode user-specific files
 **/xcuserdata/
 *.xcuserstate
+
+# Xcode workspace and project files
 *.xcworkspace/
 *.xcodeproj/
+
+# Build and derived data
+build/
+DerivedData/
