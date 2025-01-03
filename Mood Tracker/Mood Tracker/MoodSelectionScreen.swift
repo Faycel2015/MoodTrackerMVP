@@ -5,50 +5,22 @@
 //  Created by FayTek on 1/2/25.
 //
 
+import Foundation
 import SwiftUI
+import SwiftData
 
-enum Mood: String {
-    case veryUnpleasant = "Very Unpleasant"
-    case unpleasant = "Unpleasant"
-    case neutral = "Neutral"
-    case pleasant = "Pleasant"
-    case veryPleasant = "Very Pleasant"
-    
-    var color: Color
-    {
-        switch self
-        {
-        case .veryUnpleasant: return Color.red
-        case .unpleasant: return Color.orange
-        case .neutral: return Color.yellow
-        case .pleasant: return Color.green
-        case .veryPleasant: return Color.blue
-        }
-    }
-}
-
-struct ContentView: View {
-    
-    @State private var moodValue: Double = 0
-    
-    private var selectedMood: Mood {
-        switch moodValue {
-        case 0: return .veryUnpleasant
-        case 1: return .unpleasant
-        case 2: return .neutral
-        case 3: return .pleasant
-        case 4: return .veryPleasant
-        default: return .neutral
-        }
-    }
+struct MoodSelectionScreen: View {
+    @Environment(\.modelContext) var context
+    @State private var viewModel = MoodSelectionScreenViewModel()
+    @Query(sort: \SavedMood.date) var savedMoods: [SavedMood] // Fetch saved moods using @Query
     
     var body: some View {
         ZStack {
-            selectedMood.color.edgesIgnoringSafeArea(.all)
+            viewModel.selectedMood.color
+                .edgesIgnoringSafeArea(.all)
                 .opacity(0.2)
             
             VStack {
-                
                 Text("How are you feeling today?")
                     .font(.largeTitle)
                     .fontWeight(.bold)
@@ -56,36 +28,40 @@ struct ContentView: View {
                 Spacer()
                 
                 // Blob
-                BlobView(color: selectedMood.color)
+                BlobView(color: viewModel.selectedMood.color)
+                    .onTapGesture {
+                        savedMoods.forEach { mood in
+                            print(mood.date)
+                            print(mood.mood.rawValue)
+                        }
+                    }
                 
                 Spacer()
                 
-                Text(selectedMood.rawValue)
+                Text(viewModel.selectedMood.rawValue)
                     .font(.title)
                 
                 Spacer()
                 
-                MoodSlider(moodValue: $moodValue)
+                MoodSlider(viewModel: viewModel)
                 
                 Spacer()
                 
                 Button {
-                    // TODO: Save the mood
-                    
+                    // Save the mood
+                    context.insert(SavedMood(date: Date(), mood: viewModel.selectedMood))
                 } label: {
                     Text("Save")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(selectedMood.color)
+                        .background(viewModel.selectedMood.color)
                         .foregroundColor(.white)
                         .clipShape(Capsule())
                 }
-
             }
             .padding(40)
         }
-        
     }
 }
 
@@ -100,15 +76,17 @@ struct BlobView: View {
 }
 
 struct MoodSlider: View {
+    var viewModel: MoodSelectionScreenViewModel
     private var size: CGFloat = 40
     private let trackWidth: CGFloat = 300
-    @Binding var moodValue: Double
     @State private var xValue: CGFloat = 0
     private let steps = 5
     
     // Public initializer
-       init(moodValue: Binding<Double>) {
-           self._moodValue = moodValue
+       init(viewModel: MoodSelectionScreenViewModel) {
+           self.viewModel = viewModel
+           // Initialize xValue based on the initial moodValue
+           self._xValue = State(initialValue: CGFloat(viewModel.moodValue) * (trackWidth - size) / CGFloat(steps - 1))
        }
     
     var body: some View {
@@ -126,18 +104,16 @@ struct MoodSlider: View {
                 .foregroundColor(Color.white)
                 .shadow(radius: 10)
                 .gesture(DragGesture().onChanged { value in
-                    let minX: CGFloat = 0
-                    let maxX: CGFloat = trackWidth - size
-                    let clampedX = min(max(minX, value.location.x), maxX)
-                    
-                    let step = round(clampedX / stepWidth)
-                    self.xValue = step * stepWidth
-                    self.moodValue = Double(step)
+                    viewModel.updateMoodValue(sliderXValue: value.location.x,
+                                              stepWidth: stepWidth,
+                                              size: size,
+                                              trackWidth: trackWidth)
+                    xValue = CGFloat(viewModel.moodValue) * stepWidth
                 })
         }
     }
 }
 
 #Preview {
-    ContentView()
+    MoodSelectionScreen()
 }
