@@ -8,7 +8,7 @@
 import Foundation
 import Observation
 
-@Observable class MoodSelectionScreenViewModel {
+@Observable class MoodSelectionViewModel {
     var moodValue: Double = 0
     
     var selectedMood: Mood {
