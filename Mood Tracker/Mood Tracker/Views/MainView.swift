@@ -5,16 +5,17 @@
 //  Created by FayTek on 1/3/25.
 //
 
-import Foundation
 import SwiftUI
 import SwiftData
 
 struct MainView: View {
     @Environment(\.modelContext) private var context
-    @State var viewModel: SavedMoodViewModel
+    @StateObject private var viewModel: SavedMoodViewModel
     
     init() {
-        self.viewModel = SavedMoodViewModel()
+        // Initialize the ViewModel with a placeholder context
+        // The actual context will be injected in `onAppear`
+        self._viewModel = StateObject(wrappedValue: SavedMoodViewModel(context: nil))
     }
     
     var body: some View {
@@ -30,12 +31,15 @@ struct MainView: View {
                 }
         }
         .tint(Color.black)
-        onAppear {
-            viewModel = SavedMoodViewModel(context: context)
+        .onAppear {
+            // Inject the context into the ViewModel
+            viewModel.context = context
+            viewModel.fetch()
         }
     }
 }
 
 #Preview {
     MainView()
+        .modelContainer(for: SavedMood.self)
 }

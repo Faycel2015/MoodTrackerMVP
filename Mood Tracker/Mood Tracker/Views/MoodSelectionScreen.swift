@@ -6,20 +6,22 @@
 //
 
 import Foundation
+import Foundation
 import SwiftUI
 import SwiftData
 
 struct MoodSelectionScreen: View {
-    var viewModel = SavedMoodViewModel()
+    @Bindable var viewModel: SavedMoodViewModel
     
-    init(viewModel: SavedMoodViewModel = SavedMoodViewModel()) {
+    // Initialize with a viewModel
+    init(viewModel: SavedMoodViewModel) {
         self.viewModel = viewModel
     }
     
     var body: some View {
         ZStack {
             viewModel.selectedMood.color
-                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea()
                 .opacity(0.2)
             
             VStack {
@@ -75,18 +77,18 @@ struct BlobView: View {
 }
 
 struct MoodSlider: View {
-    var viewModel: SavedMoodViewModel
+    @Bindable var viewModel: SavedMoodViewModel
     private var size: CGFloat = 40
     private let trackWidth: CGFloat = 300
     @State private var xValue: CGFloat = 0
     private let steps = 5
     
     // Public initializer
-       init(viewModel: SavedMoodViewModel) {
-           self.viewModel = viewModel
-           // Initialize xValue based on the initial moodValue
-           self._xValue = State(initialValue: CGFloat(viewModel.moodValue) * (trackWidth - size) / CGFloat(steps - 1))
-       }
+    init(viewModel: SavedMoodViewModel) {
+        self.viewModel = viewModel
+        // Initialize xValue based on the initial moodValue
+        self._xValue = State(initialValue: CGFloat(viewModel.moodValue) * (trackWidth - size) / CGFloat(steps - 1))
+    }
     
     var body: some View {
         let stepWidth = (trackWidth - size) / CGFloat(steps - 1)
@@ -114,5 +116,5 @@ struct MoodSlider: View {
 }
 
 #Preview {
-    MoodSelectionScreen(viewModel: SavedMoodViewModel())
+    MoodSelectionScreen(viewModel: SavedMoodViewModel(context: try! ModelContainer(for: SavedMood.self).mainContext))
 }

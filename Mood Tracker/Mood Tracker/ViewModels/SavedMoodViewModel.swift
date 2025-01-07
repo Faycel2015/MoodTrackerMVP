@@ -9,14 +9,15 @@ import Foundation
 import SwiftData
 import Observation
 
-@Observable class SavedMoodViewModel {
+@Observable
+class SavedMoodViewModel: ObservableObject {
     var selectedDate = Date() {
         didSet {
             updateMonthDay(from: selectedDate)
         }
     }
     var monthDays = [Date]()
-    private var context: ModelContext?
+    var context: ModelContext?
     private var savedMoods: [Date: Mood] = [:]
     
     var moodValue: Double = 0
@@ -28,22 +29,30 @@ import Observation
     
     init(context: ModelContext? = nil) {
         self.context = context
-        fetch()
         updateMonthDay(from: Date())
-    }
-    
-    func moodForDay(date: Date) -> Mood? {
-        return savedMoods[date] ?? .unknown
     }
     
     private func updateMonthDay(from date: Date) {
         let calendar = Calendar.current
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
-        let range = calendar.range(of: .day, in: .month, for: startOfMonth)!
+        
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) else {
+            print("Error: Could not calculate start of month.")
+            return
+        }
+        
+        guard let range = calendar.range(of: .day, in: .month, for: startOfMonth) else {
+            print("Error: Could not calculate range of days in the month.")
+            return
+        }
         
         monthDays = range.compactMap { day -> Date? in
             calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)
         }
+    }
+    
+    func moodForDay(date: Date) -> Mood? {
+        let normalizedDate = date.normalizedDate
+        return savedMoods[normalizedDate] ?? .unknown
     }
     
     func updateMoodValue(sliderXValue: CGFloat, stepWidth: CGFloat, size: CGFloat, trackWidth: CGFloat) {
@@ -55,7 +64,7 @@ import Observation
         self.moodValue = Double(step)
     }
     
-    // Save mood to Swift Data
+    @MainActor
     func save(mood: Mood, date: Date) {
         let normalizedDate = date.normalizedDate
         
@@ -68,15 +77,42 @@ import Observation
             let savedMood = SavedMood(date: normalizedDate, mood: mood)
             context?.insert(savedMood)
         }
+        fetch() // Refresh the saved moods
     }
     
-    // Fetch mood from Swift Data
+    @MainActor
+    func editMood(date: Date, newMood: Mood) {
+        let normalizedDate = date.normalizedDate
+        
+        if let existingMood = try?
+            context?.fetch(FetchDescriptor<SavedMood>()).first(where: { savedMood in
+                Calendar.current.isDate(savedMood.date, inSameDayAs: normalizedDate)
+            }) {
+            existingMood.mood = newMood
+            fetch() // Refresh the saved moods
+        }
+    }
+    
+    @MainActor
+    func deleteMood(date: Date) {
+        let normalizedDate = date.normalizedDate
+        
+        if let existingMood = try?
+            context?.fetch(FetchDescriptor<SavedMood>()).first(where: { savedMood in
+                Calendar.current.isDate(savedMood.date, inSameDayAs: normalizedDate)
+            }) {
+            context?.delete(existingMood)
+            fetch() // Refresh the saved moods
+        }
+    }
+    
+    @MainActor
     func fetch() {
         do {
             guard let fetchedMoods = try context?.fetch(FetchDescriptor<SavedMood>()) else { return }
             savedMoods = Dictionary(uniqueKeysWithValues: fetchedMoods.map { ($0.date, $0.mood) })
         } catch {
-            print(error)
+            print("Error fetching moods: \(error)")
         }
     }
 }

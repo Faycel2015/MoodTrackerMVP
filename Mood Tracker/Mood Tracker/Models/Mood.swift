@@ -16,10 +16,8 @@ enum Mood: String, CaseIterable, Codable {
     case veryPleasant = "Very Pleasant"
     case unknown = "Unknown"
     
-    var color: Color
-    {
-        switch self
-        {
+    var color: Color {
+        switch self {
         case .veryUnpleasant: return .red
         case .unpleasant: return .orange
         case .neutral: return .yellow
